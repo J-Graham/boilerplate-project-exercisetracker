@@ -30,7 +30,7 @@ var exerciseSchema = new Schema({
   userId: { type: String, required: true },
   description: { type: String, required: true },
   duration: { type: Number, required: true },
-  date: { type: Date, default: Date.now() }
+  date: { type: Date }
 });
 var Exercise = mongoose.model('Exercise', exerciseSchema);
 
@@ -65,20 +65,28 @@ app.post('/api/exercise/add', (req, res) => {
       if (err && err.message.indexOf('Cast to ObjectId failed') !== -1) {
         res.send("No user found");
       } else {
-        console.log('here');
-        var exercise = new Exercise({ userId: req.body.userId, description: req.body.description, duration: req.body.duration, date: req.body.date ? req.body.date : Date.now() });
+        var exercise = new Exercise({ userId: req.body.userId, description: req.body.description, duration: req.body.duration, date: req.body.date ? new Date(req.body.date).toISOString('yyyy/mm/dd') : new Date().toISOString() });
         console.log(exercise);
         exercise.save((err, data) => {
           if (err) {
             res.send(err.message);
           } else {
-            console.log(data);
             res.json(data);
           }
         });
       }
     });
   }
+});
+
+app.get('/api/exercise/log', (req, res) => {
+  const limit = parseInt(req.query.limit) || 9999;
+  const from = req.query.from || new Date(-8640000000000000).toISOString('yyyy/mm/dd');
+  const to = req.query.to || new Date(8640000000000000).toISOString('yyyy/mm/dd');
+  Exercise.find({ userId: req.query.userId, date: { $gte: from, $lte: to } }).limit(limit).exec((err, data) => {
+    if (err) console.log(err);
+    res.json(data);
+  });
 });
 
 // Not found middleware
